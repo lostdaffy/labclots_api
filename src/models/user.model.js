@@ -4,6 +4,11 @@ import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
     {
+        ownerName: {
+            type: String,
+            required: true,
+            trim: true,
+        },
         labName: {
             type: String,
             required: true,
