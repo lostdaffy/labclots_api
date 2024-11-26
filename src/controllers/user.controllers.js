@@ -2,7 +2,12 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
-import { sendVerificationCode, sendWelcomeEmail } from "../email/email.js";
+import crypto from "crypto";
+import {
+    sendPasswordResetEmail,
+    sendVerificationCode,
+    sendWelcomeEmail,
+} from "../email/email.js";
 
 const registerUser = asyncHandler(async (req, res) => {
     const { ownerName, labName, labEmail, labPassword } = req.body;
@@ -23,24 +28,23 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409, "User email already exists");
     }
 
-    const verificationToken = Math.floor(
+    const verificationCode = Math.floor(
         100000 + Math.random() * 900000
     ).toString();
+
 
     const user = await User.create({
         ownerName,
         labName,
         labEmail,
         labPassword,
-        verificationToken,
-        verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
+        verificationCode,
+        verificationCodeExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
     });
 
-    const sentCode = sendVerificationCode(user.labEmail, verificationToken);
+    console.log(user.verificationCodeExpiresAt)
 
-    if (!sentCode) {
-        throw new ApiError(202, "Email not sent something went wrong");
-    }
+    sendVerificationCode(user.labEmail, verificationCode);
 
     const createdUser = await User.findById(user._id).select(
         "-labPassword -refreshToken"
@@ -58,12 +62,12 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 const verifyEmail = asyncHandler(async (req, res) => {
-    const { verificationToken } = req.body;
+    const { verificationCode } = req.body;
 
     try {
         const user = await User.findOne({
-            verificationToken,
-            verificationTokenExpiresAt: { $gt: Date.now() },
+            verificationCode,
+            verificationCodeExpiresAt: { $gt: Date.now() },
         });
 
         if (!user) {
@@ -71,8 +75,8 @@ const verifyEmail = asyncHandler(async (req, res) => {
         }
 
         user.isVerified = true;
-        user.verificationToken = undefined;
-        user.verificationTokenExpiresAt = undefined;
+        user.verificationCode = undefined;
+        user.verificationCodeExpiresAt = undefined;
 
         await user.save();
         await sendWelcomeEmail(user.labEmail);
@@ -80,9 +84,121 @@ const verifyEmail = asyncHandler(async (req, res) => {
         return res
             .status(201)
             .json(new ApiResponse(200, "Verification Successfully"));
-    } catch (error) {}
+    } catch (error) {
+        console.log(error);
+    }
+});
+
+const generateAccessAndRefreshTokens = async (userId) => {
+    try {
+        const user = await User.findById(userId);
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+
+        user.accessToken = accessToken;
+        user.refreshToken = refreshToken;
+
+        await user.save({ validBeforeSave: false });
+
+        return { refreshToken, accessToken };
+    } catch (error) {
+        throw new ApiError(
+            500,
+            "somthing went wrong while generating refresh and access tokens"
+        );
+    }
+};
+
+const loginUser = asyncHandler(async (req, res) => {
+    const { labEmail, labPassword } = req.body;
+
+    if (!labEmail) {
+        throw new ApiError(400, "username or email is required");
+    }
+
+    const user = await User.findOne({
+        $or: [{ labEmail }],
+    });
+
+    if (!user) {
+        throw new ApiError(400, "User does not exist");
+    }
+
+
+    const isPasswordValid = await user.isPasswordCorrect(labPassword);
+    if (!isPasswordValid) {
+        throw new ApiError(401, "Invalid user credentials");
+    }
+
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+        user._id
+    );
+
+    const loggedInUser = await User
+        .findById(user._id)
+        .select("-labPassword -refreshToken");
+
+    const options = {
+        httpOnly: true,
+        secure: true,
+    };
+
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    user: loggedInUser,
+                    accessToken,
+                    refreshToken,
+                },
+                "User logged In Successfully"
+            )
+        );
+});
+
+
+const forgetPassword = asyncHandler(async (req, res) => {
+    const { labEmail } = req.body;
+    try {
+        const user = await User.findOne({ labEmail });
+        if (!user) {
+            throw new ApiError(400, "User Not Found");
+        }
+
+        const resetToken = crypto.randomBytes(20).toString("hex");
+        const resetTokenExpiresAt = Date.now() + 1 * 60 * 60 * 1000;
+
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpiresAt = resetTokenExpiresAt;
+
+        await user.save();
+
+        await sendPasswordResetEmail(
+            user.labEmail,
+            `/reset-password/${resetToken}`
+        );
+
+        return res
+            .status(201)
+            .json(
+                new ApiResponse(200, "Password reset link sent to your email")
+            );
+    } catch (error) {
+        console.log(error);
+    }
 });
 
 
 
-export { registerUser, verifyEmail };
+export {
+    registerUser,
+    verifyEmail,
+    generateAccessAndRefreshTokens,
+    loginUser,
+    forgetPassword,
+};

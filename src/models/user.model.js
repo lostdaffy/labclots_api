@@ -43,10 +43,10 @@ const userSchema = new Schema(
         resetPasswordExpiresAt: {
             type: Date,
         },
-        verificationToken: {
+        verificationCode: {
             type: String,
         },
-        verificationTokenExpiresAt: {
+        verificationCodeExpiresAt: {
             type: Date,
         },
     },
