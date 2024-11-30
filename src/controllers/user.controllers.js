@@ -9,6 +9,28 @@ import {
     sendWelcomeEmail,
 } from "../email/email.js";
 
+// Generate Access And Refresh Tokens Controller
+const generateAccessAndRefreshTokens = async (userId) => {
+    try {
+        const user = await User.findById(userId);
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+
+        user.accessToken = accessToken;
+        user.refreshToken = refreshToken;
+
+        await user.save({ validBeforeSave: false });
+
+        return { refreshToken, accessToken };
+    } catch (error) {
+        throw new ApiError(
+            500,
+            "somthing went wrong while generating refresh and access tokens"
+        );
+    }
+};
+
+// Lab Register COntroller
 const registerUser = asyncHandler(async (req, res) => {
     const { ownerName, labName, labEmail, labPassword } = req.body;
 
@@ -32,7 +54,6 @@ const registerUser = asyncHandler(async (req, res) => {
         100000 + Math.random() * 900000
     ).toString();
 
-
     const user = await User.create({
         ownerName,
         labName,
@@ -42,7 +63,7 @@ const registerUser = asyncHandler(async (req, res) => {
         verificationCodeExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
     });
 
-    console.log(user.verificationCodeExpiresAt)
+    console.log(user.verificationCodeExpiresAt);
 
     sendVerificationCode(user.labEmail, verificationCode);
 
@@ -61,6 +82,7 @@ const registerUser = asyncHandler(async (req, res) => {
         );
 });
 
+// Otp Verification Controller
 const verifyEmail = asyncHandler(async (req, res) => {
     const { verificationCode } = req.body;
 
@@ -89,26 +111,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
     }
 });
 
-const generateAccessAndRefreshTokens = async (userId) => {
-    try {
-        const user = await User.findById(userId);
-        const accessToken = user.generateAccessToken();
-        const refreshToken = user.generateRefreshToken();
-
-        user.accessToken = accessToken;
-        user.refreshToken = refreshToken;
-
-        await user.save({ validBeforeSave: false });
-
-        return { refreshToken, accessToken };
-    } catch (error) {
-        throw new ApiError(
-            500,
-            "somthing went wrong while generating refresh and access tokens"
-        );
-    }
-};
-
+// Lab Login Controller
 const loginUser = asyncHandler(async (req, res) => {
     const { labEmail, labPassword } = req.body;
 
@@ -124,20 +127,18 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "User does not exist");
     }
 
-
     const isPasswordValid = await user.isPasswordCorrect(labPassword);
     if (!isPasswordValid) {
         throw new ApiError(401, "Invalid user credentials");
     }
 
-
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
         user._id
     );
 
-    const loggedInUser = await User
-        .findById(user._id)
-        .select("-labPassword -refreshToken");
+    const loggedInUser = await User.findById(user._id).select(
+        "-labPassword -refreshToken"
+    );
 
     const options = {
         httpOnly: true,
@@ -161,7 +162,26 @@ const loginUser = asyncHandler(async (req, res) => {
         );
 });
 
+// Check Auth Controller
+const checkAuth = asyncHandler(async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select("-labPassword");
+        console.log(user)
+        if (!user) {
+            return res
+                .status(400)
+                .json({ success: false, message: "User not found" });
+        }
 
+        res.status(200).json({ success: true, user })
+
+    } catch (error) {
+        console.log("Error in check auth ", error);
+        res.status(400).json({ success: false, message: error.message });
+    }
+});
+
+// Forget Password Controller
 const forgetPassword = asyncHandler(async (req, res) => {
     const { labEmail } = req.body;
     try {
@@ -193,12 +213,11 @@ const forgetPassword = asyncHandler(async (req, res) => {
     }
 });
 
-
-
 export {
     registerUser,
     verifyEmail,
     generateAccessAndRefreshTokens,
     loginUser,
     forgetPassword,
+    checkAuth
 };
