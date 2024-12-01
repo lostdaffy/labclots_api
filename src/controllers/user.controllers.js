@@ -65,7 +65,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     console.log(user.verificationCodeExpiresAt);
 
-    sendVerificationCode(user.labEmail, verificationCode);
+    sendVerificationCode(user.labEmail, verificationCode, labName);
 
     const createdUser = await User.findById(user._id).select(
         "-labPassword -refreshToken"

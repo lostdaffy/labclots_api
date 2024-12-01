@@ -7,17 +7,14 @@ import {
 } from "./emailTemplate.js";
 
 const sendVerificationCode = asyncHandler(
-    async (labEmail, verificationCode) => {
+    async (labEmail, verificationCode, labName) => {
         try {
             const response = await transporter.sendMail({
                 from: '"BloPath" <satyaasingh001@gmail.com>',
                 to: labEmail,
-                subject: "Verify Your Email",
-                text: "Verify Your Email",
-                html: VERIFICATION_EMAIL_TEMPLATE.replace(
-                    "{verificationCode}",
-                    verificationCode
-                ),
+                subject: "Your OTP for BloPath - Verify your email",
+                text: "Your OTP for BloPath - Verify your email",
+                html: VERIFICATION_EMAIL_TEMPLATE.replace("{verificationCode}", verificationCode).replace("{labName}", labName),
             });
 
             console.log("Email sent successfully", response);
