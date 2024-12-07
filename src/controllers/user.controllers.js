@@ -166,15 +166,14 @@ const loginUser = asyncHandler(async (req, res) => {
 const checkAuth = asyncHandler(async (req, res) => {
     try {
         const user = await User.findById(req.user._id).select("-labPassword");
-        console.log(user)
+        console.log(user);
         if (!user) {
             return res
                 .status(400)
                 .json({ success: false, message: "User not found" });
         }
 
-        res.status(200).json({ success: true, user })
-
+        res.status(200).json({ success: true, user });
     } catch (error) {
         console.log("Error in check auth ", error);
         res.status(400).json({ success: false, message: error.message });
@@ -213,11 +212,37 @@ const forgetPassword = asyncHandler(async (req, res) => {
     }
 });
 
+const logoutUser = asyncHandler(async (req, res) => {
+    User.findById(
+        req.user._id,
+        {
+            $set: {
+                refreshToken: undefined,
+            },
+        },
+        {
+            new: true,
+        }
+    );
+
+    const options = {
+        httpOnly: true,
+        secure: true,
+    };
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(new ApiResponse(200, {}, "User Logged out"));
+});
+
 export {
     registerUser,
     verifyEmail,
     generateAccessAndRefreshTokens,
     loginUser,
     forgetPassword,
-    checkAuth
+    checkAuth,
+    logoutUser
 };
