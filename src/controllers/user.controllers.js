@@ -2,6 +2,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
+import { Patient } from "../models/patient.model.js";
+import { Test } from "../models/test.model.js";
 import crypto from "crypto";
 import {
     sendPasswordResetEmail,
@@ -237,6 +239,176 @@ const logoutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "User Logged out"));
 });
 
+const addPatient = asyncHandler(async (req, res) => {
+    const {
+        patientName,
+        patientAge,
+        patientGender,
+        patientEmail,
+        patientMobile,
+        patientAddress,
+        referBy,
+        sampleBy,
+        sample,
+        amount,
+        discount,
+        totalAmount,
+    } = req.body;
+
+    if (
+        [
+            patientName,
+            patientAge,
+            patientGender,
+            patientEmail,
+            patientMobile,
+            patientAddress,
+            referBy,
+            sampleBy,
+            sample,
+            amount,
+            discount,
+            totalAmount,
+        ].some((field) => field?.trim() === "")
+    ) {
+        throw new ApiError(400, "All Field are required");
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        throw new ApiError(400, "user not found");
+    }
+
+    const patientId = Math.floor(1000000 + Math.random() * 900000).toString();
+
+    const patient = await Patient.create({
+        labId: user._id,
+        patientId,
+        patientName,
+        patientAge,
+        patientGender,
+        patientEmail,
+        patientMobile,
+        patientAddress,
+        referBy,
+        sampleBy,
+        sample,
+        amount,
+        discount,
+        totalAmount,
+    });
+
+    const createdPatient = await Patient.findById(patient._id);
+
+    if (!createdPatient) {
+        throw new ApiError(
+            500,
+            "Something went wrong while register the Patient"
+        );
+    }
+
+    return res
+        .status(201)
+        .json(
+            new ApiResponse(
+                200,
+                createdPatient,
+                "Patient Registered Successfully"
+            )
+        );
+});
+
+const registeredPatient = asyncHandler(async (req, res) => {
+    try {
+        const patient = await Patient.find({ labId: req.user._id });
+
+        if (!patient) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        res.json({ patient });
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+const paymentReceipt = asyncHandler(async (req, res, next) => {
+    try {
+        const patient = await Patient.findById(req.params.id);
+
+        console.log(patient);
+
+        if (!patient) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        res.json({ patient });
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+const addTest = asyncHandler(async (req, res) => {
+    const { testName, testRange, testUnit } = req.body;
+
+    if ([testName, testRange, testUnit].some((field) => field?.trim() === "")) {
+        throw new ApiError(400, "All Field are required");
+    }
+
+    const test = await Test.create({
+        testName, testRange, testUnit
+    });
+
+    const createdTest = await Test.findById(test._id);
+
+    if (!createdTest) {
+        throw new ApiError(
+            500,
+            "Something went wrong while register the Test"
+        );
+    }
+
+    return res
+        .status(201)
+        .json(
+            new ApiResponse(
+                200,
+                createdTest,
+                "Test Registered Successfully"
+            )
+        );
+});
+
+
+const showTest = asyncHandler(async (req, res) => {
+    try {
+        const test = await Test.find();
+
+        if (!test) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        res.json({ test });
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+
+const addResults = asyncHandler(async (req, res, next) => {
+    try {
+        const patient = await Patient.findById(req.params.id);
+
+        console.log(patient);
+
+        if (!patient) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json({ patient });
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
 export {
     registerUser,
     verifyEmail,
@@ -244,5 +416,11 @@ export {
     loginUser,
     forgetPassword,
     checkAuth,
-    logoutUser
+    logoutUser,
+    addPatient,
+    registeredPatient,
+    paymentReceipt,
+    addTest,
+    showTest,
+    addResults,
 };
