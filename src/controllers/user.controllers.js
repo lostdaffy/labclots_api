@@ -11,6 +11,8 @@ import {
     sendWelcomeEmail,
 } from "../email/email.js";
 
+
+
 // Generate Access And Refresh Tokens Controller
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -64,8 +66,6 @@ const registerUser = asyncHandler(async (req, res) => {
         verificationCode,
         verificationCodeExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
     });
-
-    console.log(user.verificationCodeExpiresAt);
 
     sendVerificationCode(user.labEmail, verificationCode, labName);
 
@@ -168,7 +168,9 @@ const loginUser = asyncHandler(async (req, res) => {
 const checkAuth = asyncHandler(async (req, res) => {
     try {
         const user = await User.findById(req.user._id).select("-labPassword");
+
         console.log(user);
+
         if (!user) {
             return res
                 .status(400)
@@ -214,6 +216,7 @@ const forgetPassword = asyncHandler(async (req, res) => {
     }
 });
 
+// User Logout Controller
 const logoutUser = asyncHandler(async (req, res) => {
     User.findById(
         req.user._id,
@@ -239,6 +242,7 @@ const logoutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "User Logged out"));
 });
 
+// Add Patient Controller
 const addPatient = asyncHandler(async (req, res) => {
     const {
         patientName,
@@ -280,7 +284,7 @@ const addPatient = asyncHandler(async (req, res) => {
         throw new ApiError(400, "user not found");
     }
 
-    const patientId = Math.floor(1000000 + Math.random() * 900000).toString();
+    const patientId = Math.floor(100000000 + Math.random() * 900000).toString();
 
     const patient = await Patient.create({
         labId: user._id,
@@ -319,6 +323,7 @@ const addPatient = asyncHandler(async (req, res) => {
         );
 });
 
+// Registered Patients Controller
 const registeredPatient = asyncHandler(async (req, res) => {
     try {
         const patient = await Patient.find({ labId: req.user._id });
@@ -332,11 +337,11 @@ const registeredPatient = asyncHandler(async (req, res) => {
     }
 });
 
+// Payment Receipt Controller
 const paymentReceipt = asyncHandler(async (req, res, next) => {
     try {
         const patient = await Patient.findById(req.params.id);
 
-        console.log(patient);
 
         if (!patient) {
             return res.status(404).json({ error: "User not found" });
@@ -347,6 +352,7 @@ const paymentReceipt = asyncHandler(async (req, res, next) => {
     }
 });
 
+// Add Test Controller
 const addTest = asyncHandler(async (req, res) => {
     const { testName, testRange, testUnit } = req.body;
 
@@ -378,7 +384,7 @@ const addTest = asyncHandler(async (req, res) => {
         );
 });
 
-
+// Show Test Controller
 const showTest = asyncHandler(async (req, res) => {
     try {
         const test = await Test.find();
@@ -392,12 +398,11 @@ const showTest = asyncHandler(async (req, res) => {
     }
 });
 
-
+// Add Results Controller
 const addResults = asyncHandler(async (req, res, next) => {
     try {
         const patient = await Patient.findById(req.params.id);
 
-        console.log(patient);
 
         if (!patient) {
             return res.status(404).json({ error: "User not found" });
