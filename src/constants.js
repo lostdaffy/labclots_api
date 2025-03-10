@@ -1,1 +1,1 @@
-export const DB_NAME = "BloPath";
+export const DB_NAME = "labclots";

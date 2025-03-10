@@ -10,10 +10,10 @@ const sendVerificationCode = asyncHandler(
     async (labEmail, verificationCode, labName) => {
         try {
             const response = await transporter.sendMail({
-                from: '"BloPath" <satyaasingh001@gmail.com>',
+                from: '"labclots" <satyaasingh001@gmail.com>',
                 to: labEmail,
-                subject: "Your OTP for BloPath - Verify your email",
-                text: "Your OTP for BloPath - Verify your email",
+                subject: "Your OTP for labclots - Verify your email",
+                text: "Your OTP for labclots - Verify your email",
                 html: VERIFICATION_EMAIL_TEMPLATE.replace("{verificationCode}", verificationCode).replace("{labName}", labName),
             });
 
@@ -28,7 +28,7 @@ const sendVerificationCode = asyncHandler(
 const sendWelcomeEmail = asyncHandler(async (labEmail) => {
     try {
         const response = await transporter.sendMail({
-            from: '"BloPath" <satyaasingh001@gmail.com>',
+            from: '"labclots" <satyaasingh001@gmail.com>',
             to: labEmail,
             subject: "Welcome",
             text: "Welcome",
@@ -44,7 +44,7 @@ const sendWelcomeEmail = asyncHandler(async (labEmail) => {
 const sendPasswordResetEmail = asyncHandler(async (labEmail, resetURL) => {
     try {
         const response = await transporter.sendMail({
-            from: '"BloPath" <satyaasingh001@gmail.com>',
+            from: '"labclots" <satyaasingh001@gmail.com>',
             to: labEmail,
             subject: "Reset Your Password",
             html: PASSWORD_RESET_REQUEST_TEMPLATE.replace(
