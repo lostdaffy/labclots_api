@@ -7,18 +7,20 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     try {
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
 
+        console.log("Extracted Token:", token);
+
         if (!token) {
-            throw new ApiError(401, "Unauthorized request Hai");
+            throw new ApiError(401, "Unauthorized Request - Token Not Found");
         }
 
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        console.log("Decoded Token:", decodedToken); // Debugging line
 
         const user = await User.findById(decodedToken?._id).select(
             "-password -refreshToken"
         );
 
         if (!user) {
-            // TODO: discuss about frontend
             throw new ApiError(401, "Invaild Access Token");
         }
 
@@ -26,6 +28,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
 
         next();
     } catch (error) {
+        console.error("JWT Verification Error:", error.message);
         throw new ApiError(401, error?.message || "Invaild Access Token");
     }
 });

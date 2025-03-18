@@ -2,8 +2,6 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
-import { Patient } from "../models/patient.model.js";
-import { Test } from "../models/test.model.js";
 import crypto from "crypto";
 import {
     sendPasswordResetEmail,
@@ -33,6 +31,54 @@ const generateAccessAndRefreshTokens = async (userId) => {
         );
     }
 };
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const incomingRefreshToken =
+        req.cookies.refreshToken || req.body.refreshToken;
+
+    if (!incomingRefreshToken) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    try {
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        );
+
+        const user = await User.findById(decodedToken?._id);
+
+        if (!user) {
+            throw new ApiError(401, "invalid refresh token");
+        }
+
+        if (incomingRefreshToken !== user?.refreshToken) {
+            throw new ApiError(401, "Refresh token is expired or used");
+        }
+
+        const options = {
+            httpOnly: true,
+            secure: true,
+        };
+
+        const { accessToken, newRefreshToken } =
+            await generateAccessAndRefreshTokens(user._id);
+
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", newRefreshToken, options)
+            .json(
+                new ApiResponse(
+                    200,
+                    { accessToken, refreshToken: newRefreshToken },
+                    "Access token refreshed"
+                )
+            );
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token");
+    }
+});
 
 // Lab Register COntroller
 const registerUser = asyncHandler(async (req, res) => {
@@ -169,8 +215,6 @@ const checkAuth = asyncHandler(async (req, res) => {
     try {
         const user = await User.findById(req.user._id).select("-labPassword");
 
-        console.log(user);
-
         if (!user) {
             return res
                 .status(400)
@@ -179,7 +223,6 @@ const checkAuth = asyncHandler(async (req, res) => {
 
         res.status(200).json({ success: true, user });
     } catch (error) {
-        console.log("Error in check auth ", error);
         res.status(400).json({ success: false, message: error.message });
     }
 });
@@ -242,177 +285,6 @@ const logoutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "User Logged out"));
 });
 
-// Add Patient Controller
-const addPatient = asyncHandler(async (req, res) => {
-    const {
-        patientName,
-        patientAge,
-        patientGender,
-        patientEmail,
-        patientMobile,
-        patientAddress,
-        referBy,
-        sampleBy,
-        sample,
-        amount,
-        discount,
-        totalAmount,
-    } = req.body;
-
-    if (
-        [
-            patientName,
-            patientAge,
-            patientGender,
-            patientEmail,
-            patientMobile,
-            patientAddress,
-            referBy,
-            sampleBy,
-            sample,
-            amount,
-            discount,
-            totalAmount,
-        ].some((field) => field?.trim() === "")
-    ) {
-        throw new ApiError(400, "All Field are required");
-    }
-
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-        throw new ApiError(400, "user not found");
-    }
-
-    const patientId = Math.floor(100000000 + Math.random() * 900000).toString();
-
-    const patient = await Patient.create({
-        labId: user._id,
-        patientId,
-        patientName,
-        patientAge,
-        patientGender,
-        patientEmail,
-        patientMobile,
-        patientAddress,
-        referBy,
-        sampleBy,
-        sample,
-        amount,
-        discount,
-        totalAmount,
-    });
-
-    const createdPatient = await Patient.findById(patient._id);
-
-    if (!createdPatient) {
-        throw new ApiError(
-            500,
-            "Something went wrong while register the Patient"
-        );
-    }
-
-    return res
-        .status(201)
-        .json(
-            new ApiResponse(
-                200,
-                createdPatient,
-                "Patient Registered Successfully"
-            )
-        );
-});
-
-// Registered Patients Controller
-const registeredPatient = asyncHandler(async (req, res) => {
-    try {
-        const patient = await Patient.find({ labId: req.user._id });
-
-        if (!patient) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        res.json({ patient });
-    } catch (error) {
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-});
-
-// Payment Receipt Controller
-const paymentReceipt = asyncHandler(async (req, res, next) => {
-    try {
-        const patient = await Patient.findById(req.params.id);
-
-
-        if (!patient) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        res.json({ patient });
-    } catch (error) {
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-});
-
-// Add Test Controller
-const addTest = asyncHandler(async (req, res) => {
-    const { testName, testRange, testUnit } = req.body;
-
-    if ([testName, testRange, testUnit].some((field) => field?.trim() === "")) {
-        throw new ApiError(400, "All Field are required");
-    }
-
-    const test = await Test.create({
-        testName, testRange, testUnit
-    });
-
-    const createdTest = await Test.findById(test._id);
-
-    if (!createdTest) {
-        throw new ApiError(
-            500,
-            "Something went wrong while register the Test"
-        );
-    }
-
-    return res
-        .status(201)
-        .json(
-            new ApiResponse(
-                200,
-                createdTest,
-                "Test Registered Successfully"
-            )
-        );
-});
-
-// Show Test Controller
-const showTest = asyncHandler(async (req, res) => {
-    try {
-        const test = await Test.find();
-
-        if (!test) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        res.json({ test });
-    } catch (error) {
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-});
-
-// Add Results Controller
-const addResults = asyncHandler(async (req, res, next) => {
-    try {
-        const patient = await Patient.findById(req.params.id);
-
-
-        if (!patient) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        res.json({ patient });
-    } catch (error) {
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-});
 
 export {
     registerUser,
@@ -422,10 +294,5 @@ export {
     forgetPassword,
     checkAuth,
     logoutUser,
-    addPatient,
-    registeredPatient,
-    paymentReceipt,
-    addTest,
-    showTest,
-    addResults,
+    refreshAccessToken
 };

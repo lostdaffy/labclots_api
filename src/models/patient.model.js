@@ -7,6 +7,10 @@ const patientSchema = new Schema(
             ref: 'User',
             required: true
         },
+        status: {
+            default: "Pending",
+            type: String
+        },
         patientId: {
             type: String,
             required: true,
@@ -29,25 +33,17 @@ const patientSchema = new Schema(
         },
         patientEmail: {
             type: String,
-            required: true,
             trim: true,
         },
         patientMobile: {
             type: String,
-            required: true,
             trim: true,
         },
         patientAddress: {
             type: String,
-            required: true,
             trim: true,
         },
-        referBy: {
-            type: String,
-            required: true,
-            trim: true,
-        },
-        sampleBy: {
+        consultant: {
             type: String,
             required: true,
             trim: true,
@@ -57,6 +53,10 @@ const patientSchema = new Schema(
             required: true,
             trim: true,
         },
+        test: {
+            type: String,
+            required: true,
+        },
         amount: {
             type: String,
             required: true,
@@ -64,7 +64,6 @@ const patientSchema = new Schema(
         },
         discount: {
             type: String,
-            required: true,
             trim: true,
         },
         totalAmount: {
@@ -72,6 +71,26 @@ const patientSchema = new Schema(
             required: true,
             trim: true,
         },
+        result: [
+            {
+                name: {
+                    required: true,
+                    type: String
+                },
+                range: {
+                    required: true,
+                    type: String
+                },
+                unit: {
+                    required: true,
+                    type: String
+                },
+                result: {
+                    required: true,
+                    type: String
+                },
+            }
+        ]
     },
     {
         timestamps: true,
