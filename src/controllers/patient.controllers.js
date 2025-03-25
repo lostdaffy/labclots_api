@@ -116,14 +116,14 @@ const paymentReceipt = asyncHandler(async (req, res, next) => {
 
 // Add Test Controller
 const addTest = asyncHandler(async (req, res) => {
-    const { testName, testRange, testUnit } = req.body;
+    const { testName, testPrice } = req.body;
 
-    if ([testName, testRange, testUnit].some((field) => field?.trim() === "")) {
+    if ([testName, testPrice].some((field) => field?.trim() === "")) {
         throw new ApiError(400, "All Field are required");
     }
 
     const test = await Test.create({
-        testName, testRange, testUnit
+        testName, testPrice
     });
 
     const createdTest = await Test.findById(test._id);
@@ -159,6 +159,7 @@ const showTest = asyncHandler(async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
 
 // Add Results Controller
 const addResults = asyncHandler(async (req, res, next) => {

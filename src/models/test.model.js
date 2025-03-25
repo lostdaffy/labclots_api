@@ -7,12 +7,7 @@ const testSchema = new Schema(
             required: true,
             unique: true
         },
-        testRange: {
-            type: String,
-            required: true,
-            unique: true
-        },
-        testUnit: {
+        testPrice: {
             type: String,
             required: true,
             unique: true
