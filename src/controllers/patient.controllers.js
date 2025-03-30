@@ -177,6 +177,19 @@ const addResults = asyncHandler(async (req, res, next) => {
     }
 });
 
+const reportCount = asyncHandler(async (req, res) => {
+    try {
+        const pendingCount = await Patient.countDocuments({ status: 'Pending' });
+        const completedCount = await Patient.countDocuments({ status: 'Completed' });
+        const totalCount = await Patient.countDocuments({ labId: req.user._id });
+
+        res.json({ Pending: pendingCount, Completed: completedCount, totalCount });
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+})
+
+
 export {
     addPatient,
     registeredPatient,
@@ -184,4 +197,5 @@ export {
     addTest,
     showTest,
     addResults,
+    reportCount
 };
