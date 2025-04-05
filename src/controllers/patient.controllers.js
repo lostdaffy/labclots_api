@@ -100,7 +100,7 @@ const registeredPatient = asyncHandler(async (req, res) => {
 });
 
 // Payment Receipt Controller
-const paymentReceipt = asyncHandler(async (req, res, next) => {
+const singlePatient = asyncHandler(async (req, res, next) => {
     try {
         const patient = await Patient.findById(req.params.id);
 
@@ -161,22 +161,6 @@ const showTest = asyncHandler(async (req, res) => {
 });
 
 
-// Add Results Controller
-const addResults = asyncHandler(async (req, res, next) => {
-    try {
-        const patient = await Patient.findById(req.params.id);
-
-
-        if (!patient) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        res.json({ patient });
-    } catch (error) {
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-});
-
 const reportCount = asyncHandler(async (req, res) => {
     try {
         const pendingCount = await Patient.countDocuments({ status: 'Pending' });
@@ -190,12 +174,37 @@ const reportCount = asyncHandler(async (req, res) => {
 })
 
 
+const updatePatient = asyncHandler(async (req, res) => {
+    try {
+        const { id } = req.params;
+        const body = req.body;
+
+        const updatedPatient = await Patient.findByIdAndUpdate(id, body, { new: true });
+
+        if (!updatedPatient) {
+            return res.status(404).json({ message: "Patient not found" });
+        }
+
+        res.status(200).json({
+            message: "Updated Successfully",
+            data: updatedPatient
+        });
+
+    } catch (error) {
+        console.error("Error updating patient:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+})
+
+
+
+
 export {
     addPatient,
     registeredPatient,
-    paymentReceipt,
+    singlePatient,
+    updatePatient,
     addTest,
     showTest,
-    addResults,
     reportCount
 };
