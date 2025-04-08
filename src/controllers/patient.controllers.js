@@ -5,7 +5,6 @@ import { User } from "../models/user.model.js";
 import { Patient } from "../models/patient.model.js";
 import { Test } from "../models/test.model.js";
 
-
 // Add Patient Controller
 const addPatient = asyncHandler(async (req, res) => {
     const {
@@ -46,7 +45,9 @@ const addPatient = asyncHandler(async (req, res) => {
         throw new ApiError(400, "user not found");
     }
 
-    const patientId = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    const patientId = Math.floor(
+        1000000000 + Math.random() * 9000000000
+    ).toString();
 
     const patient = await Patient.create({
         labId: user._id,
@@ -104,7 +105,6 @@ const singlePatient = asyncHandler(async (req, res, next) => {
     try {
         const patient = await Patient.findById(req.params.id);
 
-
         if (!patient) {
             return res.status(404).json({ error: "User not found" });
         }
@@ -123,26 +123,20 @@ const addTest = asyncHandler(async (req, res) => {
     }
 
     const test = await Test.create({
-        testName, testPrice
+        testName,
+        testPrice,
     });
 
     const createdTest = await Test.findById(test._id);
 
     if (!createdTest) {
-        throw new ApiError(
-            500,
-            "Something went wrong while register the Test"
-        );
+        throw new ApiError(500, "Something went wrong while register the Test");
     }
 
     return res
         .status(201)
         .json(
-            new ApiResponse(
-                200,
-                createdTest,
-                "Test Registered Successfully"
-            )
+            new ApiResponse(200, createdTest, "Test Registered Successfully")
         );
 });
 
@@ -160,26 +154,36 @@ const showTest = asyncHandler(async (req, res) => {
     }
 });
 
-
 const reportCount = asyncHandler(async (req, res) => {
     try {
-        const pendingCount = await Patient.countDocuments({ status: 'Pending' });
-        const completedCount = await Patient.countDocuments({ status: 'Completed' });
-        const totalCount = await Patient.countDocuments({ labId: req.user._id });
+        const pendingCount = await Patient.countDocuments({
+            status: "Pending",
+        });
+        const completedCount = await Patient.countDocuments({
+            status: "Completed",
+        });
+        const totalCount = await Patient.countDocuments({
+            labId: req.user._id,
+        });
 
-        res.json({ Pending: pendingCount, Completed: completedCount, totalCount });
+        res.json({
+            Pending: pendingCount,
+            Completed: completedCount,
+            totalCount,
+        });
     } catch (error) {
         res.status(500).json({ error: "Internal Server Error" });
     }
-})
-
+});
 
 const updatePatient = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
         const body = req.body;
 
-        const updatedPatient = await Patient.findByIdAndUpdate(id, body, { new: true });
+        const updatedPatient = await Patient.findByIdAndUpdate(id, body, {
+            new: true,
+        });
 
         if (!updatedPatient) {
             return res.status(404).json({ message: "Patient not found" });
@@ -187,17 +191,13 @@ const updatePatient = asyncHandler(async (req, res) => {
 
         res.status(200).json({
             message: "Updated Successfully",
-            data: updatedPatient
+            data: updatedPatient,
         });
-
     } catch (error) {
         console.error("Error updating patient:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
-})
-
-
-
+});
 
 export {
     addPatient,
@@ -206,5 +206,5 @@ export {
     updatePatient,
     addTest,
     showTest,
-    reportCount
+    reportCount,
 };
